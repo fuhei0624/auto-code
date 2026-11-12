@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>きょうのコーデ</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1f5d45">
+<style>
+:root{--bg:#fbf8ef;--card:#fff;--ink:#1f2a24;--mut:#5d6a62;--g:#1f5d45;--on:#fff;--line:#dcd6c4;--soft:#eef3ec;--err:#b3261e;color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a16;--card:#1d261f;--ink:#eae7dc;--mut:#a3b0a8;--g:#7cc3a0;--on:#0f1a14;--line:#34403a;--soft:#243029;--err:#ff8a80}}
+:root[data-theme="dark"]{--bg:#141a16;--card:#1d261f;--ink:#eae7dc;--mut:#a3b0a8;--g:#7cc3a0;--on:#0f1a14;--line:#34403a;--soft:#243029;--err:#ff8a80}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Hiragino Sans","Yu Gothic",Meiryo,sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:12px 16px 56px}
+h1{font-size:1.5rem;margin:8px 0;color:var(--g)}h2{font-size:1.1rem;margin:0 0 8px}
+nav{display:flex;gap:6px}nav button{flex:1;min-height:44px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font:inherit;cursor:pointer}
+nav button[aria-selected="true"]{background:var(--g);color:var(--on);border-color:var(--g)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.note{background:var(--soft)}.warn{border-color:var(--err)}
+.btn{background:var(--g);color:var(--on);border:1px solid var(--g);border-radius:10px;padding:8px 16px;font:inherit;min-height:44px;cursor:pointer;margin:4px 6px 4px 0}
+.btn.sub{background:transparent;color:var(--g)}.btn.dan{background:transparent;color:var(--err);border-color:var(--err)}.btn:disabled{opacity:.5}
+input,select{font:inherit;width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);min-height:44px}
+label{display:block;font-weight:600;margin:10px 0 4px}
+.err{color:var(--err);font-size:.9rem;display:block}.src,.mut,small{color:var(--mut);font-size:.85rem}
+.badge{background:var(--soft);color:var(--g);border:1px solid var(--g);border-radius:99px;padding:1px 10px;font-size:.8rem}
+.grid,.outfit{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+figure{margin:0;min-width:0}figure img,.prev{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;background:var(--soft);display:block}
+.prev{max-width:180px;margin-top:8px}
+.moods{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.moods label{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px;margin:0;font-weight:500}
+.moods input{width:auto;min-height:0}
+fieldset{border:0;padding:0;margin:0 0 8px}legend{font-weight:700}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:6px 12px;margin:0 6px 6px 0;font:inherit;cursor:pointer;min-height:40px}
+.chip[aria-pressed="true"]{background:var(--g);color:var(--on)}
+.r3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);width:min(520px,calc(100vw - 24px));max-height:90vh;padding:16px}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--g);color:var(--on);border-radius:10px;padding:10px 14px;text-align:center;z-index:9}
+#toast:empty{display:none}.steps{margin:12px 0;padding:14px 14px 14px 36px}ul.why{padding-left:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>👕 きょうのコーデ</h1>
+<nav><button id="t-today" onclick="tab('today')">今日のコーデ</button><button id="t-closet" onclick="tab('closet')">クローゼット</button><button id="t-settings" onclick="tab('settings')">設定</button></nav>
+<div id="toast" role="status"></div>
+
+<section id="v-today">
+<div id="b-today"></div>
+<ol class="card steps"><li>「クローゼット」で服の写真を登録</li><li>下で今日の気分を選ぶ</li><li>「コーデを提案」を押す</li></ol>
+<div class="card"><h2>今日の天気</h2><div id="wx"></div><p class="src">天気データ: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a>（CC BY 4.0）</p></div>
+<div class="card"><fieldset><legend>今日の気分</legend><div class="moods">
+<label><input type="radio" name="mood" value="ラクに過ごしたい">ラクに過ごしたい</label>
+<label><input type="radio" name="mood" value="きちんと見せたい">きちんと見せたい</label>
+<label><input type="radio" name="mood" value="アクティブに動きたい">アクティブに動きたい</label>
+<label><input type="radio" name="mood" value="おまかせ">おまかせ</label></div><span class="err" id="e-mood"></span></fieldset>
+<button class="btn" onclick="suggest()">コーデを提案</button></div>
+<div id="res" aria-live="polite"></div>
+</section>
+
+<section id="v-closet" hidden>
+<div id="b-closet"></div><div id="c-top"></div><div id="chips" style="margin-top:8px"></div><div id="grid" class="grid"></div>
+</section>
+
+<section id="v-settings" hidden>
+<div class="card"><h2>天気に使う地域</h2><p>現在地: <b id="cur"></b></p>
+<button class="btn sub" onclick="setRegion({name:'宇都宮市',lat:36.5658,lon:139.8836})">宇都宮市を使う（候補）</button>
+<form onsubmit="geo(event)"><label for="gq">地域を検索（日本国内）</label><input id="gq" placeholder="例: 宇都宮 / Utsunomiya"><span class="err" id="e-gq"></span><button class="btn" type="submit">検索</button></form>
+<div id="gres"></div></div>
+<div class="card"><h2>手入力モード</h2><label style="font-weight:500"><input type="checkbox" id="manual" style="width:auto;min-height:0" onchange="setManualMode(this.checked)"> 天気を取得せず、気温と降水確率を自分で入力する</label></div>
+<div class="card"><h2>写真のAI自動判定</h2><label style="font-weight:500"><input type="checkbox" id="ai" style="width:auto;min-height:0" onchange="setAi(this.checked)"> 写真から服の種類・厚さの候補を自動入力する</label><p class="mut">端末内のAIで判定するため、写真は送信されません。ただし初回だけ、モデルのファイル（数十〜100MB程度）をダウンロードします。通信量にご注意ください。色の自動判定はこの設定に関係なく、常に端末内で行います。</p></div>
+<div class="card"><h2>バックアップ</h2><p class="mut">ブラウザのデータ削除や端末の変更で、服のデータが消えることがあります。定期的に書き出して保管してください。</p><button class="btn" onclick="exportData()">書き出す（.json）</button><button class="btn sub" onclick="$('#imp').click()">読み込む</button><input type="file" id="imp" accept=".json,application/json" hidden onchange="importData(event)"><span class="err" id="e-bk"></span><p id="bk" class="mut"></p></div>
+<p class="mut">写真と服の情報はこのブラウザ内にだけ保存されます。AI判定をオンにした場合のモデルのダウンロード以外、写真が外部に送信されることはありません。</p>
+</section>
+
+<dialog id="dlg"><form onsubmit="save(event)"><h2 id="ft"></h2>
+<label for="f-photo">写真（JPEG・PNG・WebP）</label><input type="file" id="f-photo" accept="image/jpeg,image/png,image/webp,.jfif" onchange="pick(event)"><span class="err" id="e-photo"></span><p class="mut" id="ai-st" role="status"></p><img id="prev" class="prev" alt="選んだ写真のプレビュー" hidden>
+<label for="f-cat">カテゴリ</label><select id="f-cat" onchange="rainVis()"><option value="">選んでください</option><option>トップス</option><option>ボトムス</option><option>アウター</option><option>靴</option></select><span class="err" id="e-cat"></span>
+<label for="f-th">厚さ</label><select id="f-th"><option value="">選んでください</option><option>薄手</option><option>普通</option><option>厚手</option></select><span class="err" id="e-th"></span>
+<label for="f-name">名前（任意）</label><input id="f-name" maxlength="30" placeholder="空欄ならカテゴリ名になります">
+<label for="f-taste">テイスト（任意）</label><select id="f-taste"><option value="">指定しない</option><option>カジュアル</option><option>きれいめ</option><option>スポーティ</option><option>シンプル</option></select>
+<label for="f-color">色（写真から候補を自動入力します）</label><select id="f-color"><option value="">指定しない</option><option>白</option><option>黒</option><option>グレー</option><option>ベージュ</option><option>茶</option><option>赤</option><option>ピンク</option><option>オレンジ</option><option>黄</option><option>緑</option><option>青</option><option>紫</option></select>
+<label for="f-color2">サブカラー（任意・2色目）</label><select id="f-color2"></select>
+<label id="rainl" hidden style="font-weight:500"><input type="checkbox" id="f-rain" style="width:auto;min-height:0"> 雨でも使える</label>
+<span class="err" id="e-save" role="alert"></span>
+<div style="margin-top:12px"><button class="btn" id="sb" type="submit">保存</button><button class="btn sub" type="button" onclick="$('#dlg').close()">キャンセル</button></div></form></dialog>
+</div>
+<script>
+const $=s=>document.querySelector(s),CATS=['トップス','ボトムス','アウター','靴'];
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MOOD={'ラクに過ごしたい':['カジュアル','シンプル'],'きちんと見せたい':['きれいめ'],'アクティブに動きたい':['スポーティ'],'おまかせ':[]};
+const S={clothes:[],urls:{},filter:'all',region:null,manual:false,wx:null,wxState:'idle',err:'',req:0,combos:[],idx:0,demo:false,editId:null,newBlob:null,editM:false,dbErr:'',geoL:[],ai:false};
+const DEMO='白Tシャツ|トップス|薄手|カジュアル|0|#8fa89a;ニット|トップス|厚手|きれいめ|0|#a07e5a;ジャージ|トップス|普通|スポーティ|0|#3b6ea5;デニム|ボトムス|普通|カジュアル|0|#46608a;スラックス|ボトムス|普通|きれいめ|0|#55595c;ハーフパンツ|ボトムス|薄手|スポーティ|0|#6a8f5a;コート|アウター|厚手|きれいめ|1|#7a5a45;ウインドブレーカー|アウター|薄手|スポーティ|1|#2f7f7a;スニーカー|靴|普通|カジュアル|1|#b08f4a;革靴|靴|普通|きれいめ|0|#4a3b32'.split(';').map((s,i)=>{const[a,b,c,d,e,f]=s.split('|');return{id:'d'+i,name:a,cat:b,thick:c,taste:d,rain:e==='1',demoUrl:'data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 120"><rect width="90" height="120" fill="${f}"/><text x="45" y="64" font-size="13" fill="#fff" text-anchor="middle">${a}</text><text x="45" y="84" font-size="9" fill="#fff" text-anchor="middle" opacity=".8">サンプル</text></svg>`)}});
+
+/* ---- IndexedDB ---- */
+const dbp=new Promise((res,rej)=>{const r=indexedDB.open('kyou-coord',1);r.onupgradeneeded=()=>{r.result.createObjectStore('clothes',{keyPath:'id'});r.result.createObjectStore('meta')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error||new Error('保存領域を開けません'));r.onblocked=()=>rej(new Error('他のタブが保存領域を使用中です'))});
+dbp.catch(()=>{});
+function run(store,mode,fn){return dbp.then(db=>new Promise((res,rej)=>{const t=db.transaction(store,mode);let out;const rq=fn(t.objectStore(store));if(rq)rq.onsuccess=()=>out=rq.result;t.oncomplete=()=>res(out);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error('保存が中断されました'))}))}
+async function loadClothes(){S.clothes=((await run('clothes','readonly',s=>s.getAll()))||[]).sort((a,b)=>b.created-a.created)}
+async function init(){
+ try{await loadClothes();S.region=(await run('meta','readonly',s=>s.get('region')))||null;S.manual=!!(await run('meta','readonly',s=>s.get('manual')));S.ai=!!(await run('meta','readonly',s=>s.get('ai')))}
+ catch(e){S.dbErr=(e&&e.message)||String(e)}
+ try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
+ try{if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
+ tab('today');refreshWx()}
+
+/* ---- 画面 ---- */
+const list=()=>S.demo?DEMO:S.clothes;
+const nm=c=>c.name||c.cat;
+const url=c=>c.demoUrl||(S.urls[c.id]=S.urls[c.id]||URL.createObjectURL(c.photo));
+function fe(id,m){$('#e-'+id).textContent=m||''}
+function toast(m){const t=$('#toast');t.textContent=m;clearTimeout(toast.t);toast.t=setTimeout(()=>t.textContent='',3500)}
+function banner(){return S.demo?'<div class="card note">デモ表示中：サンプルの服です（実際のクローゼットには保存されません）<br><button class="btn sub" onclick="exitDemo()">デモを終了</button></div>':S.dbErr?`<div class="card warn"><b>この環境ではブラウザ保存（IndexedDB）が使えません。</b><br>理由: ${esc(S.dbErr)}<br>通常のブラウザで index.html を開き直してください（シークレットモードや Claude 内のプレビューでは使えないことがあります）。「サンプルで試す」なら保存なしで動作を確認できます。</div>`:''}
+function tab(n){['today','closet','settings'].forEach(t=>{$('#v-'+t).hidden=t!==n;$('#t-'+t).setAttribute('aria-selected',t===n)});
+ if(n==='today'){$('#b-today').innerHTML=banner();renderWx()}
+ if(n==='closet')renderCloset();
+ if(n==='settings'){$('#cur').textContent=S.region?S.region.name:'未設定';$('#manual').checked=S.manual;$('#ai').checked=S.ai}}
+function exitDemo(){S.demo=false;S.combos=[];$('#res').innerHTML='';if(S.wx&&S.wx.kind==='demo'){S.wx=null;S.wxState='idle'}tab('closet');refreshWx()}
+function startDemo(){S.demo=true;S.combos=[];$('#res').innerHTML='';tab('today')}
+
+/* ---- クローゼット ---- */
+function setF(k){S.filter=k;renderCloset()}
+function renderCloset(){
+ const L=list(),f=S.filter,v=L.filter(c=>f==='all'||c.cat===f);
+ $('#b-closet').innerHTML=banner();
+ $('#c-top').innerHTML=S.demo?'':`<button class="btn" onclick="openForm()" ${S.dbErr?'disabled':''}>＋ 服を登録</button>`;
+ $('#chips').innerHTML=['all',...CATS].map(k=>`<button class="chip" aria-pressed="${f===k}" onclick="setF('${k}')">${k==='all'?'すべて':k}（${k==='all'?L.length:L.filter(c=>c.cat===k).length}）</button>`).join('');
+ $('#grid').innerHTML=!L.length?`<div class="card" style="grid-column:1/-1"><b>まだ服がありません。</b><br>まず「＋ 服を登録」でトップスとボトムスの写真を登録しましょう。<br><button class="btn sub" onclick="startDemo()">サンプルで試す</button></div>`:!v.length?'<p>このカテゴリの服はまだありません。</p>':v.map(c=>`<figure class="card" style="margin:0;padding:8px"><img src="${url(c)}" alt="${esc(nm(c))}"><figcaption><b>${esc(nm(c))}</b><br><small>${c.cat}・${c.thick}${c.taste?'・'+c.taste:''}${c.color?'・'+c.color+(c.color2?'/'+c.color2:''):''}</small>${c.rain?'<br><span class="badge">雨でも使える</span>':''}${S.demo?'':`<br><button class="btn sub" onclick="openForm('${c.id}')">編集</button><button class="btn dan" onclick="del('${c.id}')">削除</button>`}</figcaption></figure>`).join('')}
+function rainVis(){$('#rainl').hidden=!['アウター','靴'].includes($('#f-cat').value)}
+function setPrev(src){const p=$('#prev');p.hidden=!src;if(src)p.src=src}
+function openForm(id){
+ S.editId=id||null;S.newBlob=null;const c=id&&S.clothes.find(x=>x.id===id);
+ ['photo','cat','th','save'].forEach(k=>fe(k,''));$('#f-photo').value='';
+ $('#ft').textContent=c?'服を編集':'服を登録';
+ ['f-cat','f-th','f-name','f-color','f-color2'].forEach(i=>delete $('#'+i).dataset.auto);$('#ai-st').textContent='';$('#f-color').value=c&&c.color||'';$('#f-color2').value=c&&c.color2||'';$('#f-cat').value=c?c.cat:'';$('#f-th').value=c?c.thick:'';$('#f-name').value=c?c.name:'';$('#f-taste').value=c?c.taste:'';$('#f-rain').checked=!!(c&&c.rain);
+ rainVis();setPrev(c?url(c):'');$('#dlg').showModal()}
+async function shrink(f){const u=URL.createObjectURL(f);try{const im=new Image();im.src=u;await im.decode();const k=Math.min(1,1200/Math.max(im.naturalWidth,im.naturalHeight)),w=Math.round(im.naturalWidth*k),h=Math.round(im.naturalHeight*k),c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(im,0,0,w,h);return await new Promise((ok,ng)=>c.toBlob(b=>b?ok(b):ng(new Error('変換失敗')),'image/jpeg',.85))}finally{URL.revokeObjectURL(u)}}
+async function pick(e){const f=e.target.files[0];fe('photo','');S.newBlob=null;if(!f)return;
+ if(!['image/jpeg','image/png','image/webp'].includes(f.type)&&!/\.(jpe?g|jfif|png|webp)$/i.test(f.name)){fe('photo','JPEG・PNG・WebPの画像を選んでください。');e.target.value='';return}
+ try{S.newBlob=await shrink(f);if(pick.u)URL.revokeObjectURL(pick.u);pick.u=URL.createObjectURL(S.newBlob);setPrev(pick.u);analyze(S.newBlob)}
+ catch(x){fe('photo','画像を読み込めませんでした。別の写真で試してください。');e.target.value=''}}
+async function save(e){e.preventDefault();['photo','cat','th','save'].forEach(k=>fe(k,''));
+ const ex=S.editId&&S.clothes.find(c=>c.id===S.editId),cat=$('#f-cat').value,th=$('#f-th').value;let ok=true;
+ if(!S.newBlob&&!ex){fe('photo','写真を選んでください。');ok=false}
+ if(!cat){fe('cat','カテゴリを選んでください。');ok=false}
+ if(!th){fe('th','厚さを選んでください。');ok=false}
+ if(!ok)return;
+ const rec={id:ex?ex.id:(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2)),name:$('#f-name').value.trim(),cat,thick:th,taste:$('#f-taste').value,color:$('#f-color').value,color2:$('#f-color2').value,rain:['アウター','靴'].includes(cat)&&$('#f-rain').checked,photo:S.newBlob||ex.photo,created:ex?ex.created:Date.now()};
+ const b=$('#sb');b.disabled=true;
+ try{await run('clothes','readwrite',s=>s.put(rec));await loadClothes();
+  if(S.urls[rec.id]){URL.revokeObjectURL(S.urls[rec.id]);delete S.urls[rec.id]}
+  S.combos=[];$('#res').innerHTML='';$('#dlg').close();renderCloset();toast(ex?'変更を保存しました':'登録しました')}
+ catch(x){fe('save','保存に失敗しました（'+((x&&x.message)||x)+'）。空き容量やシークレットモードでないかを確認し、「保存」をもう一度押してください。入力内容はそのまま残っています。')}
+ finally{b.disabled=false}}
+async function del(id){const c=S.clothes.find(x=>x.id===id);if(!c||!confirm('「'+nm(c)+'」を削除しますか？\nこの操作は元に戻せません。'))return;
+ try{await run('clothes','readwrite',s=>s.delete(id));if(S.urls[id]){URL.revokeObjectURL(S.urls[id]);delete S.urls[id]}await loadClothes();S.combos=[];$('#res').innerHTML='';renderCloset();toast('削除しました')}
+ catch(x){toast('削除に失敗しました: '+((x&&x.message)||x))}}
+
+/* ---- 設定・地域 ---- */
+async function setRegion(r){S.region=r;let m='地域を保存しました: '+r.name;
+ try{await run('meta','readwrite',s=>s.put(r,'region'))}catch(x){m='地域を変更しましたが保存できませんでした（再読み込みで元に戻ります）'}
+ toast(m);$('#cur').textContent=r.name;$('#gres').innerHTML='';refreshWx()}
+async function geo(e){e.preventDefault();fe('gq','');const q=$('#gq').value.trim(),o=$('#gres');if(!q){fe('gq','地域名を入力してください。');return}
+ o.textContent='検索中…';
+ try{const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(q)+'&count=10&language=ja&countryCode=JP&format=json');if(!r.ok)throw 0;const j=await r.json();S.geoL=(j.results||[]).filter(x=>x.country_code==='JP');
+  o.innerHTML=S.geoL.length?S.geoL.map((g,i)=>`<button class="btn sub" onclick="pickGeo(${i})">${esc(g.name)}${g.admin1?'（'+esc(g.admin1)+(g.admin2?' '+esc(g.admin2):'')+'）':''}</button>`).join(''):'<p>見つかりませんでした。漢字・ひらがなで見つからないときは、ローマ字（例: Utsunomiya）でも試してください。</p>'}
+ catch(x){o.innerHTML='<p class="err">地域検索に接続できませんでした。通信できる通常のブラウザで試すか、上の「宇都宮市を使う」や手入力モードをお使いください。</p>'}}
+function pickGeo(i){const g=S.geoL[i];setRegion({name:g.name+(g.admin1?'（'+g.admin1+'）':''),lat:g.latitude,lon:g.longitude})}
+async function setManualMode(v){S.manual=v;try{await run('meta','readwrite',s=>s.put(v,'manual'))}catch(x){toast('設定を保存できませんでした')}refreshWx()}
+
+/* ---- 自動判定・バックアップ ---- */
+async function setAi(v){S.ai=v;try{await run('meta','readwrite',s=>s.put(v,'ai'))}catch(x){toast('設定を保存できませんでした')}}
+function colorName(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn,s=d?d/(1-Math.abs(2*l-1)):0;let h=0;if(d){h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h=(h*60+360)%360}
+ if(l<.17)return'黒';if(d<.09)return l>.7?'白':'グレー';if(l>.88&&d<.16)return'白';
+ if(h<15||h>=345)return l>.7?'ピンク':'赤';
+ if(h<40)return l<.45?'茶':s<.5&&l>.6?'ベージュ':'オレンジ';
+ if(h<65)return l<.4?'茶':l>.7&&s<.6?'ベージュ':'黄';
+ if(h<170)return'緑';if(h<255)return'青';if(h<295)return'紫';return'ピンク'}
+async function dominant(blob){const im=new Image(),u=URL.createObjectURL(blob);try{im.src=u;await im.decode();const c=document.createElement('canvas');c.width=c.height=24;const x=c.getContext('2d'),W=im.naturalWidth,H=im.naturalHeight;x.drawImage(im,W*.2,H*.2,W*.6,H*.6,0,0,24,24);const p=x.getImageData(0,0,24,24).data,cnt={};
+ for(let i=0;i<p.length;i+=4){const n=colorName(p[i],p[i+1],p[i+2]);cnt[n]=(cnt[n]||0)+1}
+ const e=Object.entries(cnt).sort((a,b)=>b[1]-a[1]),nw=e.find(a=>a[0]!=='白');return nw&&(e[0][0]!=='白'||nw[1]>p.length/4*.25)?nw[0]:e[0][0]}finally{URL.revokeObjectURL(u)}}
+async function dominants(blob){const im=new Image(),u=URL.createObjectURL(blob);try{im.src=u;await im.decode();const N=32,cv=document.createElement('canvas');cv.width=cv.height=N;const g=cv.getContext('2d');g.drawImage(im,0,0,N,N);const p=g.getImageData(0,0,N,N).data,px=i=>[p[i*4],p[i*4+1],p[i*4+2]],bd=[];
+ for(let i=0;i<N;i++)bd.push(px(i),px((N-1)*N+i),px(i*N),px(i*N+N-1));
+ const md=k=>bd.map(v=>v[k]).sort((a,b)=>a-b)[bd.length>>1],bg=[md(0),md(1),md(2)],ds=v=>Math.hypot(v[0]-bg[0],v[1]-bg[1],v[2]-bg[2]),m=[];
+ for(let i=0;i<N*N;i++)m.push(ds(px(i))>35);
+ const sel=[];for(let y=1;y<N-1;y++)for(let x=1;x<N-1;x++){const i=y*N+x;if(m[i]&&m[i-1]&&m[i+1]&&m[i-N]&&m[i+N])sel.push(px(i))}
+ if(bd.reduce((a,v)=>a+ds(v),0)/bd.length>25||sel.length<N*N*.08)return[await dominant(blob)];
+ const cnt={};for(const v of sel){const n=colorName(...v);cnt[n]=(cnt[n]||0)+1}
+ const e=Object.entries(cnt).sort((a,b)=>b[1]-a[1]),r=[e[0][0]];if(e[1]&&e[1][1]>sel.length*.2)r.push(e[1][0]);return r}finally{URL.revokeObjectURL(u)}}
+const NEU=['白','黒','グレー','ベージュ','茶'];
+function cinfo(it){const cl=it.map(c=>c.color).filter(Boolean);return{n:cl.length,nn:[...new Set(cl.filter(c=>!NEU.includes(c)))]}}
+function colorScore(it){const{n,nn}=cinfo(it);if(n<2)return 0;let s=nn.length===0?1:nn.length===1?1.5:nn.length===2?-.5:-2;const t=it.find(c=>c.cat==='トップス'),b=it.find(c=>c.cat==='ボトムス');if(t&&b&&t.color&&t.color===b.color&&nn.includes(t.color))s-=1;return s}
+const AIL=[['t-shirt','トップス','薄手','Tシャツ'],['shirt with a collar','トップス','普通','シャツ'],['knit sweater','トップス','厚手','ニット'],['hoodie','トップス','普通','パーカー'],['jeans','ボトムス','普通','デニム'],['trousers','ボトムス','普通','パンツ'],['shorts','ボトムス','薄手','ショートパンツ'],['skirt','ボトムス','普通','スカート'],['light jacket','アウター','薄手','ジャケット'],['thick winter coat','アウター','厚手','コート'],['sneakers','靴','普通','スニーカー'],['leather shoes','靴','普通','革靴'],['boots','靴','普通','ブーツ']];
+let clf;
+async function aiTag(blob){if(!clf){const{pipeline}=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2');clf=await pipeline('zero-shot-image-classification','Xenova/clip-vit-base-patch32')}
+ const u=URL.createObjectURL(blob);try{const r=await clf(u,AIL.map(a=>a[0]));r.sort((a,b)=>b.score-a.score);const t=AIL.find(a=>a[0]===r[0].label);return t?{cat:t[1],th:t[2],name:t[3],p:r[0].score}:null}finally{URL.revokeObjectURL(u)}}
+function auto(id,v){const e=$('#'+id);if(v&&(!e.value||e.dataset.auto)){e.value=v;e.dataset.auto='1'}}
+$('#f-color2').innerHTML=$('#f-color').innerHTML;['f-cat','f-th','f-name','f-color','f-color2'].forEach(i=>$('#'+i).addEventListener('input',()=>delete $('#'+i).dataset.auto));
+async function analyze(b){const st=$('#ai-st'),j=analyze.j=(analyze.j||0)+1;st.textContent='色を判定中…';
+ try{const c=await dominants(b);if(j!==analyze.j)return;auto('f-color',c[0]);auto('f-color2',c[1])}catch(x){}
+ if(!S.ai){st.textContent='色の候補を入力しました。違っていれば直してください。';return}
+ st.textContent='AIで判定中…（初回はモデルのダウンロードに時間がかかります。この間も手入力できます）';
+ try{const r=await aiTag(b);if(j!==analyze.j)return;
+  if(!r||r.p<.3){st.textContent='AIは服の種類を判定できませんでした。手入力してください。';return}
+  auto('f-cat',r.cat);auto('f-th',r.th);auto('f-name',r.name);rainVis();
+  st.textContent='AIの候補を入力しました（'+r.cat+'・'+r.th+'）。厚さ・テイスト・「雨でも使える」は写真から断定できないため、必ず確認してください。'}
+ catch(x){if(j===analyze.j)st.textContent='AI判定は使えませんでした（'+((x&&x.message)||x)+'）。通信できる通常のブラウザでお試しください。手入力で登録できます。'}}
+const b2d=b=>new Promise((ok,ng)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=()=>ng(r.error);r.readAsDataURL(b)});
+function d2b(d){const[h,b]=d.split(','),m=h.match(/:(.*?);/)[1],s=atob(b),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return new Blob([a],{type:m})}
+async function exportData(){fe('bk','');const o=$('#bk');
+ try{if(!S.clothes.length){o.textContent='書き出す服がまだありません。';return}
+  o.textContent='書き出し中…';const cl=[];for(const c of S.clothes)cl.push({...c,photo:await b2d(c.photo)});
+  const bl=new Blob([JSON.stringify({app:'kyou-no-code',v:1,clothes:cl})],{type:'application/json'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(bl);a.download='kyou-no-code-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  o.textContent=cl.length+'着を書き出しました。ダウンロードされたファイルを大切に保管してください。'}
+ catch(x){o.textContent='';fe('bk','書き出しに失敗しました: '+((x&&x.message)||x))}}
+async function importData(e){const f=e.target.files[0];e.target.value='';fe('bk','');if(!f)return;
+ try{const j=JSON.parse(await f.text());if(j.app!=='kyou-no-code'||!Array.isArray(j.clothes))throw new Error('このアプリのバックアップファイルではありません');
+  const L=j.clothes.filter(c=>c&&c.id&&CATS.includes(c.cat)&&['薄手','普通','厚手'].includes(c.thick)&&typeof c.photo==='string'&&c.photo.startsWith('data:image/'));
+  if(!L.length)throw new Error('読み込める服がありません');
+  if(!confirm(L.length+'着を読み込みます。同じ服はバックアップの内容で上書きされます。よろしいですか？'))return;
+  const recs=L.map(c=>({id:String(c.id),name:String(c.name||'').slice(0,30),cat:c.cat,thick:c.thick,taste:c.taste||'',color:c.color||'',color2:c.color2||'',rain:!!c.rain,photo:d2b(c.photo),created:Number(c.created)||Date.now()}));
+  await run('clothes','readwrite',s=>{recs.forEach(r=>s.put(r))});
+  recs.forEach(r=>{if(S.urls[r.id]){URL.revokeObjectURL(S.urls[r.id]);delete S.urls[r.id]}});
+  await loadClothes();S.combos=[];$('#res').innerHTML='';$('#bk').textContent=recs.length+'着を読み込みました。「クローゼット」で確認してください。'}
+ catch(x){fe('bk','読み込みに失敗しました: '+((x&&x.message)||x))}}
+
+/* ---- 天気 ---- */
+const wxTxt=c=>c==null?'':c==0?'快晴':c<=2?'晴れ〜薄曇り':c==3?'くもり':c<=48?'霧':c<=57?'霧雨':c<=67?'雨':c<=77?'雪':c<=82?'にわか雨':c<=86?'にわか雪':'雷雨';
+async function refreshWx(){const n=++S.req;
+ if(S.manual){S.wxState=S.wx&&S.wx.kind==='manual'?'manual':'idle';renderWx();return}
+ if(S.wx&&S.wx.kind==='demo'){renderWx();return}
+ if(!S.region){S.wx=null;S.wxState='noregion';renderWx();return}
+ S.wx=null;S.wxState='loading';renderWx();
+ const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),10000);
+ try{const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${S.region.lat}&longitude=${S.region.lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=1`,{signal:ctl.signal});
+  if(!r.ok)throw new Error('サーバー応答 '+r.status);const d=(await r.json()).daily;if(n!==S.req)return;
+  const mx=d.temperature_2m_max[0],mn=d.temperature_2m_min[0],pp=d.precipitation_probability_max[0];
+  if([mx,mn,pp].some(v=>v==null||!isFinite(v)))throw new Error('予報の値が不足しています');
+  if(mn>mx)throw new Error('予報の気温が不正です（最低が最高より高い）');
+  if(pp<0||pp>100)throw new Error('降水確率が0〜100%の範囲外です');
+  S.wx={kind:'api',max:mx,min:mn,pop:pp,code:d.weather_code[0]};S.wxState='ok'}
+ catch(x){if(n!==S.req)return;S.wxState='error';S.err=x.name==='AbortError'?'時間内に応答がありませんでした':((x&&x.message)||'通信できませんでした')}
+ finally{clearTimeout(tm)}
+ renderWx()}
+function mform(w){return `<form onsubmit="return setManual(event)"><p><b>手入力</b>（予報を使わず、入力した値で提案します）</p><div class="r3"><div><label for="mx">最高気温(℃)</label><input id="mx" type="number" step="any" inputmode="decimal" value="${w?w.max:''}"><span class="err" id="e-mx"></span></div><div><label for="mn">最低気温(℃)</label><input id="mn" type="number" step="any" inputmode="decimal" value="${w?w.min:''}"><span class="err" id="e-mn"></span></div><div><label for="mp">降水確率(%)</label><input id="mp" type="number" step="1" inputmode="numeric" value="${w?w.pop:''}"><span class="err" id="e-mp"></span></div></div><button class="btn" type="submit">この値で使う</button></form>`}
+function setManual(e){e.preventDefault();const g=i=>$('#'+i).value.trim();['mx','mn','mp'].forEach(i=>fe(i,''));
+ const mx=g('mx'),mn=g('mn'),mp=g('mp'),a=Number(mx),b=Number(mn),p=Number(mp);let ok=true;
+ if(mx===''||!isFinite(a)){fe('mx','数字で入力してください');ok=false}
+ if(mn===''||!isFinite(b)){fe('mn','数字で入力してください');ok=false}
+ if(mp===''||!Number.isInteger(p)||p<0||p>100){fe('mp','0〜100の整数');ok=false}
+ if(ok&&b>a){fe('mn','最高気温以下にしてください');ok=false}
+ if(!ok)return false;
+ S.wx={kind:'manual',max:a,min:b,pop:p};S.wxState='manual';S.editM=false;renderWx();return false}
+function demoWx(){S.wx={kind:'demo',max:12,min:6,pop:70,code:61};S.wxState='ok';renderWx()}
+function renderWx(){const w=S.wx,st=S.wxState;let h='';const rg=S.region?`<p><b>地域:</b> ${esc(S.region.name)}</p>`:'';
+ if(st==='loading')h=rg+'<p>天気を取得中…</p>';
+ else if(st==='noregion')h='<p>地域が未設定です。設定で地域を選ぶか、下に気温を手入力してください。</p><button class="btn sub" onclick="tab(\'settings\')">設定で地域を選ぶ</button>';
+ else if(st==='error')h=rg+`<p class="err">天気を取得できませんでした: ${esc(S.err)}。通信できる通常のブラウザで開くか、下に手入力してください（Claude内のプレビューでは外部通信が制限されます）。</p><button class="btn sub" onclick="refreshWx()">再試行</button>`;
+ if(w)h+=rg+`<p><span class="badge">${{api:'予報（Open-Meteo）',manual:'手入力',demo:'デモ（架空の値）'}[w.kind]}</span> ${w.code!=null?wxTxt(w.code)+'　':''}最高 <b>${w.max}℃</b> / 最低 <b>${w.min}℃</b> / 最大降水確率 <b>${w.pop}%</b></p>`;
+ if(S.manual||st==='error'||st==='noregion'||S.editM)h+=mform(w&&w.kind==='manual'?w:null);
+ else if(w&&w.kind==='manual'&&S.region)h+='<button class="btn sub" onclick="S.editM=true;renderWx()">手入力を直す</button><button class="btn sub" onclick="S.wx=null;refreshWx()">予報を取得し直す</button>';
+ if(S.demo&&!(w&&w.kind==='demo'))h+='<button class="btn sub" onclick="demoWx()">デモ天気（架空の寒い雨の日）を使う</button>';
+ $('#wx').innerHTML=h}
+
+/* ---- 提案 ---- */
+function sc(c,w,m){let s=0;if(c.cat!=='靴'){if(w.max>=25)s+=c.thick==='薄手'?2:c.thick==='厚手'?-2:0;else if(w.max<=16)s+=c.thick==='厚手'?2:c.thick==='薄手'?-2:0}
+ const i=MOOD[m].indexOf(c.taste);if(i>=0)s+=1.2-i*.2;if(w.pop>=50&&c.rain)s+=3;return s}
+function reasons(it,w,m){const r=[],j=a=>a.map(c=>'「'+nm(c)+'」').join('と'),rn=it.filter(c=>c.rain),th=it.filter(c=>c.cat!=='靴'&&c.thick==='薄手'),tk=it.filter(c=>c.cat!=='靴'&&c.thick==='厚手'),tm=it.filter(c=>MOOD[m].includes(c.taste)),o=it.find(c=>c.cat==='アウター');
+ if(w.pop>=50&&rn.length)r.push(`最大降水確率${w.pop}%なので、「雨でも使える」を付けた${j(rn)}を選びました。`);
+ if(w.max>=25&&th.length)r.push(`最高${w.max}℃の暑さに合わせて、薄手の${j(th)}を選びました。`);
+ if(w.max<=16&&tk.length)r.push(`最高${w.max}℃と寒いので、厚手の${j(tk)}を選びました。`);
+ if(o&&w.min<=12)r.push(`最低${w.min}℃で冷えるため、アウターの${j([o])}を添えました。`);
+ {const ci=cinfo(it);if(ci.n>=2&&ci.nn.length===0)r.push('白・黒・グレー・ベージュ・茶系だけで、合わせやすい配色です。');else if(ci.n>=2&&ci.nn.length===1)r.push('差し色は'+ci.nn[0]+'の1色で、全体がまとまります。')}
+ if(tm.length)r.push(`「${m}」の気分に合うテイスト（${[...new Set(tm.map(c=>c.taste))].join('・')}）の${j(tm)}を入れました。`);
+ if(!r.length)r.push('登録した服の中から、今日の条件に近い組み合わせを選びました。');
+ return r.slice(0,2)}
+function suggest(){const el=$('#res'),mm=document.querySelector('input[name=mood]:checked');fe('mood','');
+ if(!mm){fe('mood','気分を選んでください。');return}
+ const w=S.wx,m=mm.value,L=list();
+ if(!w){el.innerHTML='<div class="card warn">先に天気を取得するか、気温と降水確率を手入力してください。</div>';return}
+ if(!L.length){el.innerHTML='<div class="card warn">まだ服がありません。「クローゼット」でトップスとボトムスの写真を登録してください。<br><button class="btn" onclick="tab(\'closet\')">クローゼットへ</button></div>';return}
+ const by=k=>L.filter(c=>c.cat===k),T=by('トップス'),B=by('ボトムス'),O=by('アウター'),H=by('靴'),miss=[];
+ if(!T.length)miss.push('トップス');if(!B.length)miss.push('ボトムス');
+ if(miss.length){el.innerHTML=`<div class="card warn">コーデには${miss.join('と')}が必要です。「クローゼット」で${miss.join('・')}を登録してください。<br><button class="btn" onclick="tab('closet')">クローゼットへ</button></div>`;return}
+ const need=w.max<=16||w.min<=12||(w.pop>=50&&w.max<25&&O.some(c=>c.rain)),os=need&&O.length?O:[null],hs=H.length?H:[null],all=[];
+ for(const t of T)for(const b of B)for(const o of os)for(const h of hs){const it=[t,b,o,h].filter(Boolean);all.push({it,s:it.reduce((a,c)=>a+sc(c,w,m),0)+colorScore(it)})}
+ let pool=all.sort((a,b)=>b.s-a.s);S.combos=[];
+ while(S.combos.length<3&&pool.length){let best=null,bv=-1e9;for(const c of pool){const ids=c.it.map(x=>x.id);let ov=0;for(const p of S.combos)ov+=p.it.filter(x=>ids.includes(x.id)).length;const v=c.s-.8*ov;if(v>bv){bv=v;best=c}}S.combos.push(best);pool=pool.filter(c=>c!==best)}
+ S.idx=0;S.m=m;S.hint=[];
+ if(need&&!O.length)S.hint.push('寒い日はアウターがあると提案が良くなります。アウターを登録してみましょう。');
+ if(!H.length)S.hint.push('靴を登録すると、コーデに靴も添えられます。');
+ if(w.pop>=50&&!L.some(c=>c.rain))S.hint.push('「雨でも使える」を付けたアウターや靴を登録すると、雨の日に優先されます。');
+ showRes()}
+function showRes(){const c=S.combos[S.idx],w=S.wx;if(!c)return;
+ $('#res').innerHTML=`<div class="card"><h2>今日のコーデ</h2><p class="mut">${S.combos.length>1?S.combos.map((_,i)=>`<button class="chip" aria-pressed="${i===S.idx}" onclick="S.idx=${i};showRes()">案${i+1}</button>`).join(''):'提案できる組み合わせは1案です。'}</p>
+ <div class="outfit">${c.it.map(x=>`<figure><img src="${url(x)}" alt="${esc(nm(x))}"><figcaption><b>${esc(nm(x))}</b><br><small>${x.cat}</small></figcaption></figure>`).join('')}</div>
+ <h2 style="margin-top:14px">理由</h2><ul class="why">${reasons(c.it,w,S.m).map(r=>`<li>${esc(r)}</li>`).join('')}</ul>
+ ${S.hint.map(h=>`<p class="mut">💡 ${esc(h)}</p>`).join('')}</div>`}
+init();
+</script>
+</body>
+</html>
