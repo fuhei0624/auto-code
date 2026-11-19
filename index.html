@@ -63,7 +63,9 @@ dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);co
 <div class="wrap">
 <nav class="nav"><div class="brand"><div class="logo">♧</div>Closet AI</div><button class="navtag" onclick="openSet()">⚙ 設定</button></nav>
 <div id="toast" role="status"></div>
+<input type="file" id="bulk" accept="image/jpeg,image/png,image/webp,.jfif" multiple hidden onchange="bulkPick(event)">
 <div id="b-today"></div>
+<div id="start"></div>
 <section class="hero">
 <div class="hero-main"><div class="eyebrow">STYLE, MADE SIMPLE</div><h1>今日のコーデ、<br>天気と気分で決めよう。</h1><p>登録した服の写真だけで、今日の天気と気分に合うコーデを提案します。</p><div class="stp"><span>① 服の写真を登録</span><span>② 気分を選ぶ</span><span>③ 提案</span></div><div class="hero-art">♧</div></div>
 <div class="weather-card"><div class="weather-top"><div><div class="weather-small">今日のコンディション</div><div class="weather-city" id="wcity">地域未設定</div></div><div class="weather-icon" id="wicon">☁️</div></div><div id="wx"></div><p class="src">天気データ: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a>（CC BY 4.0）</p></div>
@@ -72,7 +74,7 @@ dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);co
 <aside>
 <section class="panel"><h2>✦ 今日の条件</h2>
 <fieldset><legend>今日の気分</legend><div>
-<label class="chip"><input type="radio" name="mood" value="ラクに過ごしたい">😌 ラクに過ごしたい</label><label class="chip"><input type="radio" name="mood" value="きちんと見せたい">👔 きちんと見せたい</label><label class="chip"><input type="radio" name="mood" value="アクティブに動きたい">⚡ アクティブに動きたい</label><label class="chip"><input type="radio" name="mood" value="おまかせ">✨ おまかせ</label>
+<label class="chip"><input type="radio" name="mood" value="ラクに過ごしたい">😌 ラクに過ごしたい</label><label class="chip"><input type="radio" name="mood" value="きちんと見せたい">👔 きちんと見せたい</label><label class="chip"><input type="radio" name="mood" value="アクティブに動きたい">⚡ アクティブに動きたい</label><label class="chip"><input type="radio" name="mood" value="おまかせ" checked>✨ おまかせ</label>
 </div><span class="err" id="e-mood"></span></fieldset>
 <label for="occasion">行き先・予定</label><select id="occasion"><option value="university">🎒 大学</option><option value="date">💐 デート</option><option value="parttime">🧑‍🍳 バイト</option><option value="outing">🛍️ おでかけ</option><option value="home">🏠 家で過ごす</option></select>
 <button class="primary" onclick="suggest(0)">コーデを提案する →</button></section>
@@ -81,6 +83,7 @@ dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);co
 <main>
 <div class="section-head"><div><h2>今日のおすすめコーデ</h2><p id="resultSub">気分を選んで「コーデを提案する」を押してください</p></div><button class="secondary" onclick="suggest(1)">↻ もう一度</button></div>
 <div id="res" aria-live="polite"></div>
+<section class="panel" id="favp" hidden style="margin-top:20px"><h2>♡ お気に入りコーデ</h2><div id="favl" class="outfits"></div></section>
 <section class="panel" id="v-closet" style="margin-top:20px"><div class="section-head"><div><h2>クローゼット</h2><p>登録した服の写真</p></div><div id="c-top"></div></div><div id="chips"></div><div id="grid" class="grid"></div></section>
 </main></div>
 <p class="footer">Closet AI · 写真と服の情報はこのブラウザ内にだけ保存されます</p>
@@ -104,13 +107,13 @@ dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);co
 <label for="f-color2">サブカラー（任意・2色目）</label><select id="f-color2"></select>
 <label id="rainl" hidden style="font-weight:500"><input type="checkbox" id="f-rain" style="width:auto;min-height:0"> 雨でも使える</label>
 <span class="err" id="e-save" role="alert"></span>
-<div style="margin-top:12px"><button class="btn" id="sb" type="submit">保存</button><button class="btn sub" type="button" onclick="$('#dlg').close()">キャンセル</button></div></form></dialog>
+<div style="margin-top:12px"><button class="btn" id="sb" type="submit">保存</button><button class="btn sub" type="button" onclick="$('#dlg').close()">キャンセル</button><button class="btn sub" type="button" id="skipb" hidden onclick="nextQ()">この写真をスキップ</button></div></form></dialog>
 </div>
 <script>
 const $=s=>document.querySelector(s),CATS=['トップス','ボトムス','アウター','靴','小物'],NOTH=['靴','小物'];
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const MOOD={'ラクに過ごしたい':['カジュアル','シンプル'],'きちんと見せたい':['きれいめ'],'アクティブに動きたい':['スポーティ'],'おまかせ':[]};
-const S={clothes:[],urls:{},filter:'all',region:null,manual:false,wx:null,wxState:'idle',err:'',req:0,combos:[],idx:0,demo:false,editId:null,newBlob:null,editM:false,dbErr:'',geoL:[],ai:false,fav:new Set(),favD:new Set(),occ:'university',occT:null};
+const S={clothes:[],urls:{},filter:'all',region:null,manual:false,wx:null,wxState:'idle',err:'',req:0,combos:[],idx:0,demo:false,editId:null,newBlob:null,editM:false,dbErr:'',geoL:[],ai:false,fav:new Set(),worn:{},bk:0,queue:[],qn:0,saved:0,favD:new Set(),occ:'university',occT:null};
 const DEMO='白Tシャツ|トップス|薄手|カジュアル|0|#8fa89a;ニット|トップス|厚手|きれいめ|0|#a07e5a;ジャージ|トップス|普通|スポーティ|0|#3b6ea5;デニム|ボトムス|普通|カジュアル|0|#46608a;スラックス|ボトムス|普通|きれいめ|0|#55595c;ハーフパンツ|ボトムス|薄手|スポーティ|0|#6a8f5a;コート|アウター|厚手|きれいめ|1|#7a5a45;ウインドブレーカー|アウター|薄手|スポーティ|1|#2f7f7a;スニーカー|靴|普通|カジュアル|1|#b08f4a;革靴|靴|普通|きれいめ|0|#4a3b32'.split(';').map((s,i)=>{const[a,b,c,d,e,f]=s.split('|');return{id:'d'+i,name:a,cat:b,thick:c,taste:d,rain:e==='1',demoUrl:'data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 120"><rect width="90" height="120" fill="${f}"/><text x="45" y="64" font-size="13" fill="#fff" text-anchor="middle">${a}</text><text x="45" y="84" font-size="9" fill="#fff" text-anchor="middle" opacity=".8">サンプル</text></svg>`)}});
 
 /* ---- IndexedDB ---- */
@@ -119,7 +122,7 @@ dbp.catch(()=>{});
 function run(store,mode,fn){return dbp.then(db=>new Promise((res,rej)=>{const t=db.transaction(store,mode);let out;const rq=fn(t.objectStore(store));if(rq)rq.onsuccess=()=>out=rq.result;t.oncomplete=()=>res(out);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error('保存が中断されました'))}))}
 async function loadClothes(){S.clothes=((await run('clothes','readonly',s=>s.getAll()))||[]).sort((a,b)=>b.created-a.created)}
 async function init(){
- try{await loadClothes();S.region=(await run('meta','readonly',s=>s.get('region')))||null;S.manual=!!(await run('meta','readonly',s=>s.get('manual')));S.ai=!!(await run('meta','readonly',s=>s.get('ai')));S.fav=new Set((await run('meta','readonly',s=>s.get('fav')))||[])}
+ try{await loadClothes();S.region=(await run('meta','readonly',s=>s.get('region')))||null;S.manual=!!(await run('meta','readonly',s=>s.get('manual')));S.ai=!!(await run('meta','readonly',s=>s.get('ai')));S.fav=new Set((await run('meta','readonly',s=>s.get('fav')))||[]);S.worn=(await run('meta','readonly',s=>s.get('worn')))||{};S.bk=(await run('meta','readonly',s=>s.get('bk')))||0}
  catch(e){S.dbErr=(e&&e.message)||String(e)}
  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
  try{if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
@@ -131,7 +134,7 @@ const nm=c=>c.name||c.cat;
 const url=c=>c.demoUrl||(S.urls[c.id]=S.urls[c.id]||URL.createObjectURL(c.photo));
 function fe(id,m){$('#e-'+id).textContent=m||''}
 function toast(m){const t=$('#toast');t.textContent=m;clearTimeout(toast.t);toast.t=setTimeout(()=>t.textContent='',3500)}
-function banner(){return S.demo?'<div class="card note">デモ表示中：サンプルの服です（実際のクローゼットには保存されません）<br><button class="btn sub" onclick="exitDemo()">デモを終了</button></div>':S.dbErr?`<div class="card warn"><b>この環境ではブラウザ保存（IndexedDB）が使えません。</b><br>理由: ${esc(S.dbErr)}<br>通常のブラウザで index.html を開き直してください（シークレットモードや Claude 内のプレビューでは使えないことがあります）。「サンプルで試す」なら保存なしで動作を確認できます。</div>`:''}
+function banner0(){return S.demo?'<div class="card note">デモ表示中：サンプルの服です（実際のクローゼットには保存されません）<br><button class="btn sub" onclick="exitDemo()">デモを終了</button></div>':S.dbErr?`<div class="card warn"><b>この環境ではブラウザ保存（IndexedDB）が使えません。</b><br>理由: ${esc(S.dbErr)}<br>通常のブラウザで index.html を開き直してください（シークレットモードや Claude 内のプレビューでは使えないことがあります）。「サンプルで試す」なら保存なしで動作を確認できます。</div>`:''}
 function openSet(){$('#cur').textContent=S.region?S.region.name:'未設定';$('#manual').checked=S.manual;$('#ai').checked=S.ai;$('#setdlg').showModal()}
 function tab(n){$('#b-today').innerHTML=banner();renderWx();renderCloset();if(n==='settings')openSet();else if(n==='closet'&&tab.k)$('#v-closet').scrollIntoView({behavior:'smooth'});tab.k=1}
 function exitDemo(){S.demo=false;S.combos=[];$('#res').innerHTML='';if(S.wx&&S.wx.kind==='demo'){S.wx=null;S.wxState='idle'}tab('closet');refreshWx()}
@@ -139,10 +142,10 @@ function startDemo(){S.demo=true;S.combos=[];$('#res').innerHTML='';tab('today')
 
 /* ---- クローゼット ---- */
 function setF(k){S.filter=k;renderCloset()}
-function renderCloset(){
+function renderCloset(){renderStart();renderFavs();
  const L=list(),f=S.filter,v=L.filter(c=>f==='all'||c.cat===f);
 
- $('#c-top').innerHTML=S.demo?'':`<button class="btn" onclick="openForm()" ${S.dbErr?'disabled':''}>＋ 服を登録</button>`;
+ $('#c-top').innerHTML=S.demo?'':`<button class="btn" onclick="openForm()" ${S.dbErr?'disabled':''}>＋ 服を登録</button><button class="btn sub" onclick="$('#bulk').click()" ${S.dbErr?'disabled':''}>複数まとめて登録</button>`;
  $('#chips').innerHTML=['all',...CATS].map(k=>`<button class="chip" aria-pressed="${f===k}" onclick="setF('${k}')">${k==='all'?'すべて':k}（${k==='all'?L.length:L.filter(c=>c.cat===k).length}）</button>`).join('');
  $('#grid').innerHTML=!L.length?`<div class="card" style="grid-column:1/-1"><b>まだ服がありません。</b><br>まず「＋ 服を登録」でトップスとボトムスの写真を登録しましょう。<br><button class="btn sub" onclick="startDemo()">サンプルで試す</button></div>`:!v.length?'<p>このカテゴリの服はまだありません。</p>':v.map(c=>`<figure class="card" style="margin:0;padding:8px"><img src="${url(c)}" alt="${esc(nm(c))}"><figcaption><b>${esc(nm(c))}</b><br><small>${c.cat}・${c.thick}${c.taste?'・'+c.taste:''}${c.color?'・'+c.color+(c.color2?'/'+c.color2:''):''}</small>${c.rain?'<br><span class="badge">雨でも使える</span>':''}${S.demo?'':`<br><button class="btn sub" onclick="openForm('${c.id}')">編集</button><button class="btn dan" onclick="del('${c.id}')">削除</button>`}</figcaption></figure>`).join('')}
 function rainVis(){$('#rainl').hidden=!['アウター','靴'].includes($('#f-cat').value)}
@@ -151,8 +154,8 @@ function openForm(id){
  S.editId=id||null;S.newBlob=null;const c=id&&S.clothes.find(x=>x.id===id);
  ['photo','cat','th','save'].forEach(k=>fe(k,''));$('#f-photo').value='';
  $('#ft').textContent=c?'服を編集':'服を登録';
- ['f-cat','f-th','f-name','f-color','f-color2'].forEach(i=>delete $('#'+i).dataset.auto);$('#ai-st').textContent='';$('#f-color').value=c&&c.color||'';$('#f-color2').value=c&&c.color2||'';$('#f-cat').value=c?c.cat:'';$('#f-th').value=c?c.thick:'';$('#f-name').value=c?c.name:'';$('#f-taste').value=c?c.taste:'';$('#f-rain').checked=!!(c&&c.rain);
- rainVis();setPrev(c?url(c):'');$('#dlg').showModal()}
+ ['f-cat','f-th','f-name','f-color','f-color2'].forEach(i=>delete $('#'+i).dataset.auto);$('#ai-st').textContent='';$('#skipb').hidden=true;$('#f-color').value=c&&c.color||'';$('#f-color2').value=c&&c.color2||'';$('#f-cat').value=c?c.cat:'';$('#f-th').value=c?c.thick:'';$('#f-name').value=c?c.name:'';$('#f-taste').value=c?c.taste:'';$('#f-rain').checked=!!(c&&c.rain);
+ rainVis();setPrev(c?url(c):'');if(!$('#dlg').open)$('#dlg').showModal()}
 async function shrink(f){const u=URL.createObjectURL(f);try{const im=new Image();im.src=u;await im.decode();const k=Math.min(1,1200/Math.max(im.naturalWidth,im.naturalHeight)),w=Math.round(im.naturalWidth*k),h=Math.round(im.naturalHeight*k),c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(im,0,0,w,h);return await new Promise((ok,ng)=>c.toBlob(b=>b?ok(b):ng(new Error('変換失敗')),'image/jpeg',.85))}finally{URL.revokeObjectURL(u)}}
 async function pick(e){const f=e.target.files[0];fe('photo','');S.newBlob=null;if(!f)return;
  if(!['image/jpeg','image/png','image/webp'].includes(f.type)&&!/\.(jpe?g|jfif|png|webp)$/i.test(f.name)){fe('photo','JPEG・PNG・WebPの画像を選んでください。');e.target.value='';return}
@@ -168,7 +171,7 @@ async function save(e){e.preventDefault();['photo','cat','th','save'].forEach(k=
  const b=$('#sb');b.disabled=true;
  try{await run('clothes','readwrite',s=>s.put(rec));await loadClothes();
   if(S.urls[rec.id]){URL.revokeObjectURL(S.urls[rec.id]);delete S.urls[rec.id]}
-  S.combos=[];$('#res').innerHTML='';$('#dlg').close();renderCloset();toast(ex?'変更を保存しました':'登録しました')}
+  S.combos=[];$('#res').innerHTML='';$('#dlg').close();renderCloset();toast(ex?'変更を保存しました':'登録しました');if(S.queue.length){S.saved=1;nextQ()}else S.queue=[]}
  catch(x){fe('save','保存に失敗しました（'+((x&&x.message)||x)+'）。空き容量やシークレットモードでないかを確認し、「保存」をもう一度押してください。入力内容はそのまま残っています。')}
  finally{b.disabled=false}}
 async function del(id){const c=S.clothes.find(x=>x.id===id);if(!c||!confirm('「'+nm(c)+'」を削除しますか？\nこの操作は元に戻せません。'))return;
@@ -231,7 +234,7 @@ async function exportData(){fe('bk','');const o=$('#bk');
   o.textContent='書き出し中…';const cl=[];for(const c of S.clothes)cl.push({...c,photo:await b2d(c.photo)});
   const bl=new Blob([JSON.stringify({app:'kyou-no-code',v:1,clothes:cl})],{type:'application/json'}),a=document.createElement('a');
   a.href=URL.createObjectURL(bl);a.download='kyou-no-code-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-  o.textContent=cl.length+'着を書き出しました。ダウンロードされたファイルを大切に保管してください。'}
+  S.bk=Date.now();try{await run('meta','readwrite',s=>s.put(S.bk,'bk'))}catch(x){}$('#b-today').innerHTML=banner();o.textContent=cl.length+'着を書き出しました。ダウンロードされたファイルを大切に保管してください。'}
  catch(x){o.textContent='';fe('bk','書き出しに失敗しました: '+((x&&x.message)||x))}}
 async function importData(e){const f=e.target.files[0];e.target.value='';fe('bk','');if(!f)return;
  try{const j=JSON.parse(await f.text());if(j.app!=='kyou-no-code'||!Array.isArray(j.clothes))throw new Error('このアプリのバックアップファイルではありません');
@@ -284,7 +287,7 @@ function renderWx(){const w=S.wx,st=S.wxState;let h='';const rg='';
 
 /* ---- 提案 ---- */
 function sc(c,w,m){let s=0;if(!NOTH.includes(c.cat)){if(w.max>=25)s+=c.thick==='薄手'?2:c.thick==='厚手'?-2:0;else if(w.max<=16)s+=c.thick==='厚手'?2:c.thick==='薄手'?-2:0}
- const i=MOOD[m].indexOf(c.taste);if(i>=0)s+=1.2-i*.2;if(S.occT&&S.occT.includes(c.taste))s+=.7;if(w.pop>=50&&c.rain)s+=3;return s}
+ const i=MOOD[m].indexOf(c.taste);if(i>=0)s+=1.2-i*.2;const wd=S.worn[c.id];if(wd&&Date.now()-wd<3*864e5)s-=2.5;if(S.occT&&S.occT.includes(c.taste))s+=.7;if(w.pop>=50&&c.rain)s+=3;return s}
 function reasons(it,w,m){const r=[],j=a=>a.map(c=>'「'+nm(c)+'」').join('と'),rn=it.filter(c=>c.rain),th=it.filter(c=>!NOTH.includes(c.cat)&&c.thick==='薄手'),tk=it.filter(c=>!NOTH.includes(c.cat)&&c.thick==='厚手'),tm=it.filter(c=>MOOD[m].includes(c.taste)),o=it.find(c=>c.cat==='アウター');
  if(w.pop>=50&&rn.length)r.push(`最大降水確率${w.pop}%なので、「雨でも使える」を付けた${j(rn)}を選びました。`);
  if(w.max>=25&&th.length)r.push(`最高${w.max}℃の暑さに合わせて、薄手の${j(th)}を選びました。`);
@@ -302,15 +305,15 @@ function suggest(j){const el=$('#res'),mm=document.querySelector('input[name=moo
  const by=k=>L.filter(c=>c.cat===k),T=by('トップス'),B=by('ボトムス'),O=by('アウター'),H=by('靴'),miss=[];
  if(!T.length)miss.push('トップス');if(!B.length)miss.push('ボトムス');
  if(miss.length){el.innerHTML=`<div class="card warn">コーデには${miss.join('と')}が必要です。「クローゼット」で${miss.join('・')}を登録してください。<br><button class="btn" onclick="tab('closet')">クローゼットへ</button></div>`;return}
- const need=w.max<=16||w.min<=12||(w.pop>=50&&w.max<25&&O.some(c=>c.rain)),os=need&&O.length?O:[null],hs=H.length?H:[null],all=[];
- for(const t of T)for(const b of B)for(const o of os)for(const h of hs){const it=[t,b,o,h].filter(Boolean);all.push({it,s:it.reduce((a,c)=>a+sc(c,w,m),0)+colorScore(it)+(j?Math.random()*.8:0)})}
+ const tp=(a,n)=>a.length<=n?a:a.map(c=>[c,sc(c,w,m)+(j?Math.random()*.8:0)]).sort((x,y)=>y[1]-x[1]).slice(0,n).map(x=>x[0]);const need=w.max<=16||w.min<=12||(w.pop>=50&&w.max<25&&O.some(c=>c.rain)),os=need&&O.length?O:[null],hs=H.length?H:[null],all=[];
+ for(const t of tp(T,12))for(const b of tp(B,12))for(const o of tp(os,6))for(const h of tp(hs,6)){const it=[t,b,o,h].filter(Boolean);all.push({it,s:it.reduce((a,c)=>a+sc(c,w,m),0)+colorScore(it)+(j?Math.random()*.8:0)})}
  let pool=all.sort((a,b)=>b.s-a.s);S.combos=[];
  while(S.combos.length<3&&pool.length){let best=null,bv=-1e9;for(const c of pool){const ids=c.it.map(x=>x.id);let ov=0;for(const p of S.combos)ov+=p.it.filter(x=>ids.includes(x.id)).length;const v=c.s-.8*ov;if(v>bv){bv=v;best=c}}S.combos.push(best);pool=pool.filter(c=>c!==best)}
  S.m=m;S.hint=[];const AC=by('小物').sort((a,b)=>sc(b,w,m)-sc(a,w,m));if(AC.length)S.combos.forEach((c,i)=>c.it.push(AC[i%AC.length]));
  if(need&&!O.length)S.hint.push('寒い日はアウターがあると提案が良くなります。アウターを登録してみましょう。');
- if(!H.length)S.hint.push('靴を登録すると、コーデに靴も添えられます。');
+ if(!H.length)S.hint.push('靴を登録すると、コーデに靴も添えられます。');if(L.some(c=>S.worn[c.id]&&Date.now()-S.worn[c.id]<3*864e5))S.hint.push('最近3日以内に「着た」と記録した服は、優先度を下げています。');
  if(w.pop>=50&&!L.some(c=>c.rain))S.hint.push('「雨でも使える」を付けたアウターや靴を登録すると、雨の日に優先されます。');
- showRes()}
+ showRes(1)}
 const TT={'カジュアル':'いつもの安心カジュアル','きれいめ':'すっきりきれいめ','スポーティ':'アクティブスポーティ','シンプル':'色数をおさえたシンプル'};
 const OCC={university:['大学',['カジュアル','シンプル'],'大学にぴったり'],date:['デート',['きれいめ'],'デートのきれいめスタイル'],parttime:['バイト',['スポーティ','シンプル'],'動きやすいバイトコーデ'],outing:['おでかけ',['カジュアル','スポーティ'],'おでかけにちょうどいい'],home:['家で過ごす',['カジュアル'],'おうちでゆったり']};
 const fkey=c=>c.it.map(x=>x.id).sort().join('+');
@@ -320,10 +323,26 @@ function tipText(w){const t=w.max;let s=t<=5?'厚手のアウターやニット�
  if(w.min<=12&&t>14)s+=' 朝晩は'+w.min+'℃まで下がるので羽織りがあると安心です。';
  if(w.pop>=50)s+=' 降水確率'+w.pop+'%。傘と、濡れても困りにくい靴を。';
  if([71,73,75,77,85,86].includes(w.code))s+=' 雪の予報です。暖かい重ね着を。';return s}
-async function fav(i){const k=fkey(S.combos[i]),F=S.demo?S.favD:S.fav;F.has(k)?F.delete(k):F.add(k);if(!S.demo)try{await run('meta','readwrite',s=>s.put([...F],'fav'))}catch(x){toast('お気に入りを保存できませんでした')}showRes()}
-function showRes(){const w=S.wx,F=S.demo?S.favD:S.fav;if(!S.combos.length)return;
+const OKF=f=>['image/jpeg','image/png','image/webp'].includes(f.type)||/\.(jpe?g|jfif|png|webp)$/i.test(f.name);
+async function favKey(k){const F=S.demo?S.favD:S.fav;F.has(k)?F.delete(k):F.add(k);if(!S.demo)try{await run('meta','readwrite',s=>s.put([...F],'fav'))}catch(x){toast('お気に入りを保存できませんでした')}renderFavs();if(S.combos.length)showRes()}
+function fav(i){favKey(fkey(S.combos[i]))}
+function renderFavs(){const F=S.demo?S.favD:S.fav,L=list(),its=[];
+ F.forEach(k=>{const it=k.split('+').map(id=>L.find(c=>c.id===id));if(it.every(Boolean))its.push([k,it])});
+ $('#favp').hidden=!its.length;
+ $('#favl').innerHTML=its.map(([k,it])=>`<article class="outfit"><div class="pv">${it.map(x=>`<figure><img src="${url(x)}" alt="${esc(nm(x))}"><figcaption>${esc(nm(x))}</figcaption></figure>`).join('')}</div><div class="ob"><button class="btn sub" onclick="favKey('${k}')">♡ 外す</button><button class="btn" onclick="woreIds('${k}'.split('+'))">👕 今日これを着た</button></div></article>`).join('')}
+async function woreIds(ids){if(S.demo){toast('デモでは記録されません');return}const t=Date.now();ids.forEach(id=>S.worn[id]=t);try{await run('meta','readwrite',s=>s.put(S.worn,'worn'));toast('記録しました。数日は提案の優先度を下げます')}catch(x){toast('記録を保存できませんでした')}}
+function showRes(go){showRes0();if(go&&innerWidth<=820)$('#res').scrollIntoView({behavior:'smooth'})}
+function renderStart(){$('#start').innerHTML=(!S.demo&&!S.dbErr&&!S.clothes.length)?`<div class="panel note"><h2>まず服を登録しましょう</h2><p style="margin:0 0 8px">トップスとボトムスを1着ずつ登録すると、コーデを提案できます。写真を選ぶと、色などの候補が自動で入ります。</p><button class="btn" onclick="openForm()">＋ 服を登録</button><button class="btn sub" onclick="$('#bulk').click()">複数まとめて登録</button><button class="btn sub" onclick="startDemo()">サンプルで試す</button></div>`:''}
+function banner(){return banner0()||bkRemind()}
+function bkRemind(){if(!S.clothes.length)return'';const ref=S.bk||Math.min(...S.clothes.map(c=>c.created));return Date.now()-ref>30*864e5?`<div class="card note">${S.bk?'前回の書き出しから':'最初の登録から'}30日以上たっています。データはこの端末内にだけあるので、書き出して保管しておくと安心です。<br><button class="btn sub" onclick="openSet()">バックアップする</button></div>`:''}
+async function bulkPick(e){const fs=[...e.target.files].filter(OKF);e.target.value='';if(!fs.length){toast('JPEG・PNG・WebPの画像を選んでください');return}S.queue=fs;S.qn=fs.length;nextQ()}
+async function nextQ(){const f=S.queue.shift();if(!f){$('#dlg').close();toast('まとめて登録が終わりました');return}
+ openForm();$('#ft').textContent='服を登録（'+(S.qn-S.queue.length)+'/'+S.qn+'）';$('#skipb').hidden=!S.queue.length;
+ try{S.newBlob=await shrink(f);if(pick.u)URL.revokeObjectURL(pick.u);pick.u=URL.createObjectURL(S.newBlob);setPrev(pick.u);analyze(S.newBlob)}catch(x){fe('photo','この写真は読み込めませんでした。スキップしてください。')}}
+$('#dlg').addEventListener('close',()=>{if(S.saved)S.saved=0;else S.queue=[]});
+function showRes0(){const w=S.wx,F=S.demo?S.favD:S.fav;if(!S.combos.length)return;
  $('#resultSub').textContent=OCC[S.occ][0]+'・'+S.m+' に合わせた'+S.combos.length+'つのスタイル';
- $('#res').innerHTML=`<div class="outfits">${S.combos.map((c,i)=>`<article class="outfit"><div class="pv">${c.it.map(x=>`<figure><img src="${url(x)}" alt="${esc(nm(x))}"><figcaption>${esc(nm(x))}</figcaption></figure>`).join('')}<button class="heart" aria-label="お気に入り" onclick="fav(${i})">${F.has(fkey(c))?'❤️':'♡'}</button></div><div class="ob"><div class="ot">${esc(title(c,i))}</div><div class="od">${w.max}℃ / ${w.min}℃・降水${w.pop}%に合わせた組み合わせ</div><div class="why">${reasons(c.it,w,S.m).map(r=>'✦ '+esc(r)).join('<br>')}</div></div></article>`).join('')}</div>${S.hint.map(h=>`<p class="mut">💡 ${esc(h)}</p>`).join('')}`}
+ $('#res').innerHTML=`<div class="outfits">${S.combos.map((c,i)=>`<article class="outfit"><div class="pv">${c.it.map(x=>`<figure><img src="${url(x)}" alt="${esc(nm(x))}"><figcaption>${esc(nm(x))}</figcaption></figure>`).join('')}<button class="heart" aria-label="お気に入り" onclick="fav(${i})">${F.has(fkey(c))?'❤️':'♡'}</button></div><div class="ob"><div class="ot">${esc(title(c,i))}</div><div class="od">${w.max}℃ / ${w.min}℃・降水${w.pop}%に合わせた組み合わせ</div><div class="why">${reasons(c.it,w,S.m).map(r=>'✦ '+esc(r)).join('<br>')}</div><button class="btn sub" style="margin-top:10px" onclick="woreIds(S.combos[${i}].it.map(x=>x.id))">👕 今日これを着た</button></div></article>`).join('')}</div>${S.hint.map(h=>`<p class="mut">💡 ${esc(h)}</p>`).join('')}`}
 init();
 </script>
 </body>
